@@ -21,17 +21,11 @@ package org.apache.samza.storage.kv
 
 
 import java.io.File
-import java.util
 
-import org.apache.samza.metrics.Gauge
-import org.apache.samza.{SamzaException, Partition}
 import org.apache.samza.config.MapConfig
-import org.apache.samza.container.{TaskName, SamzaContainerContext}
-import org.apache.samza.system.SystemStreamPartition
-import org.apache.samza.util.{NoOpMetricsRegistry, ExponentialSleepStrategy}
-import org.apache.samza.util.Util._
+import org.apache.samza.util.ExponentialSleepStrategy
 import org.junit.{Assert, Test}
-import org.rocksdb.{TickerType, HistogramType, RocksDBException, Options}
+import org.rocksdb.{HistogramType, Options, TickerType}
 
 class TestRocksDbKeyValueStore
 {
