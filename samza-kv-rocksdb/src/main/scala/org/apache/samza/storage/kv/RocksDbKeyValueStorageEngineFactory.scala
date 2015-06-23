@@ -45,8 +45,8 @@ class RocksDbKeyValueStorageEngineFactory [K, V] extends BaseKeyValueStorageEngi
                           containerContext: SamzaContainerContext): KeyValueStore[Array[Byte], Array[Byte]] = {
     val storageConfig = containerContext.config.subset("stores." + storeName + ".", true)
     val isLoggedStore = containerContext.config.getChangelogStream(storeName).isDefined
-    val rocksDbMetrics = new KeyValueStoreMetrics(storeName, registry)
     val rocksDbOptions = RocksDbKeyValueStore.options(storageConfig, containerContext)
+    val rocksDbMetrics = new RocksDbStatistic(storeName, rocksDbOptions, registry)
     val rocksDbWriteOptions = new WriteOptions().setDisableWAL(true)
     val rocksDb = new RocksDbKeyValueStore(storeDir, rocksDbOptions, storageConfig, isLoggedStore, storeName, rocksDbWriteOptions, rocksDbMetrics)
     rocksDb

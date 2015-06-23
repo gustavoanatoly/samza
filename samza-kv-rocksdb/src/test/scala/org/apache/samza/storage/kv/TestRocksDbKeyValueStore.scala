@@ -25,7 +25,7 @@ import java.io.File
 import org.apache.samza.config.MapConfig
 import org.apache.samza.util.ExponentialSleepStrategy
 import org.junit.{Assert, Test}
-import org.rocksdb.{HistogramType, Options, TickerType}
+import org.rocksdb.{WriteOptions, HistogramType, Options, TickerType}
 
 class TestRocksDbKeyValueStore
 {
@@ -65,41 +65,25 @@ class TestRocksDbKeyValueStore
   def testStatistic() {
     val numberOfOperations: Int = 1000
     val options = new Options()
-    options.setCreateIfMissing(true).createStatistics()
-    val rocksDB = RocksDbKeyValueStore.openDB(new File(System.getProperty("java.io.tmpdir")),
+    val storeName: String = "someStore"
+    val stat: RocksDbStatistic = new RocksDbStatistic(storeName, options)
+    val rocksDB = new RocksDbKeyValueStore(new File(System.getProperty("java.io.tmpdir")),
       options,
       new MapConfig(),
       false,
-      "someStore")
+      storeName,
+      new WriteOptions().setDisableWAL(true),
+      stat)
 
     for (key <- 1 to numberOfOperations) {
-      rocksDB.put(("k" + key).getBytes("UTF-8"), "a".getBytes("UTF-8"))
+      rocksDB.put(("k" + key).getBytes("UTF-8"), "aeiou".getBytes("UTF-8"))
       rocksDB.get(("k" + key).getBytes("UTF-8"))
     }
 
     Thread.sleep(1000)
 
-    val stat = options.statisticsPtr()
-
-    Assert.assertEquals(stat.getTickerCount(TickerType.NUMBER_KEYS_WRITTEN), numberOfOperations)
-    Assert.assertEquals(stat.getTickerCount(TickerType.NUMBER_KEYS_READ), numberOfOperations)
-    Assert.assertTrue(stat.getTickerCount(TickerType.BYTES_WRITTEN) > 0)
-    Assert.assertTrue(stat.geHistogramData(HistogramType.DB_GET).getAverage > 0)
-    Assert.assertTrue(stat.geHistogramData(HistogramType.DB_GET).getMedian > 0)
-    Assert.assertTrue(stat.geHistogramData(HistogramType.DB_GET).getPercentile95 > 0)
-    Assert.assertTrue(stat.geHistogramData(HistogramType.DB_GET).getPercentile99 > 0)
-    Assert.assertTrue(stat.geHistogramData(HistogramType.DB_GET).getStandardDeviation > 0)
-
-    for (tt <- TickerType.values()) {
-      println(">> Ticker statistic - " + tt.name() + ": " + stat.getTickerCount(tt))
-    }
-    for (hist <- HistogramType.values()) {
-      println(">> Hist statistic - " + hist.name() + " Avarage: " + stat.geHistogramData(hist).getAverage)
-      println(">> Hist statistic - " + hist.name() + " Median: " + stat.geHistogramData(hist).getMedian)
-      println(">> Hist statistic - " + hist.name() + " Percentile95: " + stat.geHistogramData(hist).getPercentile95)
-      println(">> Hist statistic - " + hist.name() + " Percentile99: " + stat.geHistogramData(hist).getPercentile99)
-      println(">> Hist statistic - " + hist.name() + " Standard Deviation: " + stat.geHistogramData(hist).getStandardDeviation)
-    }
+    Assert.assertEquals(stat.numberKeysRead().getCount, numberOfOperations)
+    println(">> " + stat.compactionOutfileSyncMicrosHistogram().getValue.getAverage)
     rocksDB.close()
   }
 }
