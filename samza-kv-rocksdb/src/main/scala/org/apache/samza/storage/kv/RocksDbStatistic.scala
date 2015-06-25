@@ -22,7 +22,7 @@ package org.apache.samza.storage.kv
 import org.apache.samza.metrics.{Counter, MetricsHelper, MetricsRegistry, MetricsRegistryMap}
 import org.rocksdb.{HistogramData, HistogramType, Options, TickerType}
 
-class RocksDbStatistic(val storeName: String = "rocksdb-statistic",
+class RocksDbStatistic(val storeName: String = "unknown",
                        val options: Options,
                        val registry: MetricsRegistry = new MetricsRegistryMap()) extends MetricsHelper {
 
