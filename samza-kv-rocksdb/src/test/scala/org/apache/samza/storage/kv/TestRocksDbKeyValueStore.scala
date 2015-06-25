@@ -66,14 +66,11 @@ class TestRocksDbKeyValueStore
     val numberOfOperations: Int = 1000
     val options = new Options()
     val storeName: String = "someStore"
-    val stat: RocksDbStatistic = new RocksDbStatistic(storeName, options)
     val rocksDB = new RocksDbKeyValueStore(new File(System.getProperty("java.io.tmpdir")),
       options,
       new MapConfig(),
       false,
-      storeName,
-      new WriteOptions().setDisableWAL(true),
-      stat)
+      storeName)
 
     for (key <- 1 to numberOfOperations) {
       rocksDB.put(("k" + key).getBytes("UTF-8"), "aeiou".getBytes("UTF-8"))
@@ -82,8 +79,11 @@ class TestRocksDbKeyValueStore
 
     Thread.sleep(1000)
 
-    Assert.assertEquals(stat.numberKeysRead().getCount, numberOfOperations)
-    println(">> " + stat.compactionOutfileSyncMicrosHistogram().getValue.getAverage)
+    Assert.assertEquals(rocksDB.getStatistic().numberKeysRead().getCount, numberOfOperations)
+    Assert.assertEquals(rocksDB.getStatistic().numberKeysWritten().getCount, numberOfOperations)
+    Assert.assertTrue(rocksDB.getStatistic().bytesWritten().getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().bytesRead().getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().dbGetHistogram().getValue.getAverage > 0)
     rocksDB.close()
   }
 }

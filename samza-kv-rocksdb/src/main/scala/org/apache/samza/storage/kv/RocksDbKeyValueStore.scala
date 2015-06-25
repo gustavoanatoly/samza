@@ -21,7 +21,6 @@ package org.apache.samza.storage.kv
 
 import java.io.File
 import org.apache.samza.SamzaException
-import org.apache.samza.metrics.{MetricsHelper, MetricsRegistryMap, MetricsRegistry}
 import org.apache.samza.util.{ LexicographicComparator, Logging }
 import org.apache.samza.config.Config
 import org.apache.samza.container.SamzaContainerContext
@@ -130,6 +129,8 @@ object RocksDbKeyValueStore extends Logging {
         }
       }
   }
+
+  def statistic(storeName: String, options: Options) = new RocksDbStatistic(storeName, options)
 }
 
 class RocksDbKeyValueStore(
@@ -139,21 +140,27 @@ class RocksDbKeyValueStore(
   val isLoggedStore: Boolean,
   val storeName: String,
   val writeOptions: WriteOptions = new WriteOptions(),
-  val metrics: RocksDbStatistic) extends KeyValueStore[Array[Byte], Array[Byte]] with Logging {
+  val metrics: KeyValueStoreMetrics = new KeyValueStoreMetrics) extends KeyValueStore[Array[Byte], Array[Byte]] with Logging {
 
   // lazy val here is important because the store directories do not exist yet, it can only be opened
   // after the directories are created, which happens much later from now.
   private lazy val db = RocksDbKeyValueStore.openDB(dir, options, storeConfig, isLoggedStore, storeName)
   private val lexicographic = new LexicographicComparator()
   private var deletesSinceLastCompaction = 0
+  private val statistic = RocksDbKeyValueStore.statistic(storeName, options)
 
   def get(key: Array[Byte]): Array[Byte] = {
+    metrics.gets.inc
     require(key != null, "Null key not allowed.")
     val found = db.get(key)
+    if (found != null) {
+      metrics.bytesRead.inc(found.size)
+    }
     found
   }
 
   def getAll(keys: java.util.List[Array[Byte]]): java.util.Map[Array[Byte], Array[Byte]] = {
+    metrics.getAlls.inc
     require(keys != null, "Null keys not allowed.")
     val map = db.multiGet(keys)
     if (map != null) {
@@ -165,16 +172,19 @@ class RocksDbKeyValueStore(
           bytesRead += value.size
         }
       }
+      metrics.bytesRead.inc(bytesRead)
     }
     map
   }
 
   def put(key: Array[Byte], value: Array[Byte]) {
+    metrics.puts.inc
     require(key != null, "Null key not allowed.")
     if (value == null) {
       db.remove(writeOptions, key)
       deletesSinceLastCompaction += 1
     } else {
+      metrics.bytesWritten.inc(key.size + value.size)
       db.put(writeOptions, key, value)
     }
   }
@@ -193,13 +203,17 @@ class RocksDbKeyValueStore(
       } else {
         val key = curr.getKey
         val value = curr.getValue
+        metrics.bytesWritten.inc(key.size + value.size)
         db.put(writeOptions, key, value)
       }
     }
+    metrics.puts.inc(wrote)
+    metrics.deletes.inc(deletes)
     deletesSinceLastCompaction += deletes
   }
 
   def delete(key: Array[Byte]) {
+    metrics.deletes.inc
     put(key, null)
   }
 
@@ -208,20 +222,25 @@ class RocksDbKeyValueStore(
   }
 
   def range(from: Array[Byte], to: Array[Byte]): KeyValueIterator[Array[Byte], Array[Byte]] = {
+    metrics.ranges.inc
     require(from != null && to != null, "Null bound not allowed.")
     new RocksDbRangeIterator(db.newIterator(), from, to)
   }
 
   def all(): KeyValueIterator[Array[Byte], Array[Byte]] = {
+    metrics.alls.inc
     val iter = db.newIterator()
     iter.seekToFirst()
     new RocksDbIterator(iter)
   }
 
   def flush {
+    metrics.flushes.inc
     // TODO still not exposed in Java RocksDB API, follow up with rocksDB team
     trace("Flush in RocksDbKeyValueStore is not supported, ignoring")
   }
+
+  def getStatistic() = statistic
 
   def close() {
     trace("Closing.")
@@ -264,6 +283,10 @@ class RocksDbKeyValueStore(
 
       val entry = getEntry()
       iter.next
+      metrics.bytesRead.inc(entry.getKey.size)
+      if (entry.getValue != null) {
+        metrics.bytesRead.inc(entry.getValue.size)
+      }
       entry
     }
 
