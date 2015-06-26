@@ -28,11 +28,11 @@ class RocksDbStatistic(val storeName: String = "unknown",
 
   val statistic = options.statisticsPtr()
 
-  def ticker(tickerType: TickerType) = {
+  private def ticker(tickerType: TickerType) = {
     statistic.getTickerCount(tickerType)
   }
 
-  def histogram(histogramType: HistogramType): HistogramData = {
+  private def histogram(histogramType: HistogramType): HistogramData = {
     statistic.geHistogramData(histogramType)
   }
 

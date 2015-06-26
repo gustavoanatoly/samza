@@ -77,8 +77,6 @@ class TestRocksDbKeyValueStore
       rocksDB.get(("k" + key).getBytes("UTF-8"))
     }
 
-    Thread.sleep(1000)
-
     Assert.assertEquals(rocksDB.getStatistic().numberKeysRead().getCount, numberOfOperations)
     Assert.assertEquals(rocksDB.getStatistic().numberKeysWritten().getCount, numberOfOperations)
     Assert.assertTrue(rocksDB.getStatistic().bytesWritten().getCount > 0)
