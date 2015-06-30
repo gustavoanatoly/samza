@@ -130,7 +130,7 @@ object RocksDbKeyValueStore extends Logging {
       }
   }
 
-  def statistic(storeName: String, options: Options) = new RocksDbStatistic(storeName, options)
+  def statistic(storeName: String, options: Options) = new RocksDbStatisticMetrics(storeName, options)
 }
 
 class RocksDbKeyValueStore(
