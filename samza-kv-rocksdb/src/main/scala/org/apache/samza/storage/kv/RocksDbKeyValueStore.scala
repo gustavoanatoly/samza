@@ -130,7 +130,7 @@ object RocksDbKeyValueStore extends Logging {
       }
   }
 
-  def statistic(storeName: String, options: Options) = new RocksDbStatisticMetrics(storeName, options)
+  def statistic(storeName: String, options: Options, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, metrics: KeyValueStoreMetrics)
 }
 
 class RocksDbKeyValueStore(
@@ -147,7 +147,7 @@ class RocksDbKeyValueStore(
   private lazy val db = RocksDbKeyValueStore.openDB(dir, options, storeConfig, isLoggedStore, storeName)
   private val lexicographic = new LexicographicComparator()
   private var deletesSinceLastCompaction = 0
-  private val statistic = RocksDbKeyValueStore.statistic(storeName, options)
+  private val statistic = RocksDbKeyValueStore.statistic(storeName, options, metrics)
 
   def get(key: Array[Byte]): Array[Byte] = {
     metrics.gets.inc
@@ -235,11 +235,25 @@ class RocksDbKeyValueStore(
   }
 
   def flush {
+    getStatistic.updateRocksDbStatistic()
     metrics.flushes.inc
     // TODO still not exposed in Java RocksDB API, follow up with rocksDB team
     trace("Flush in RocksDbKeyValueStore is not supported, ignoring")
   }
 
+  /**
+   * This method exposes RocksDb statistic to a metric, using [[RocksDbStatisticMetrics]] instance.
+   * Basically [[RocksDbStatisticMetrics]] wrap counters and gauges, where counters it's directly
+   * associated with [[TickerType]] and gauges with [[HistogramData]].
+   * To make use of the statistics the user should update it calling [[RocksDbKeyValueStore.flush]]
+   * and then choose your statistic, example:
+   *
+   * rocksDb.flush
+   * rocksDB.getStatistic().numberKeysRead().getCount
+   * rocksDB.getStatistic().dbGetHistogram().getValue.getAverage
+   *
+   * @return [[RocksDbStatisticMetrics]]
+   */
   def getStatistic() = statistic
 
   def close() {
