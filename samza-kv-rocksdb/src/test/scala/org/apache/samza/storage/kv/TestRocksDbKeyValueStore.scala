@@ -27,8 +27,6 @@ import org.apache.samza.util.ExponentialSleepStrategy
 import org.junit.{Assert, Test}
 import org.rocksdb.{WriteOptions, HistogramType, Options, TickerType}
 
-import scala.io.Source
-
 class TestRocksDbKeyValueStore
 {
   @Test
