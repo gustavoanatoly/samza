@@ -27,6 +27,8 @@ import org.apache.samza.util.ExponentialSleepStrategy
 import org.junit.{Assert, Test}
 import org.rocksdb.{WriteOptions, HistogramType, Options, TickerType}
 
+import scala.io.Source
+
 class TestRocksDbKeyValueStore
 {
   @Test
@@ -66,7 +68,8 @@ class TestRocksDbKeyValueStore
     val numberOfOperations: Int = 1000
     val options = new Options()
     val storeName: String = "someStore"
-    val rocksDB = new RocksDbKeyValueStore(new File(System.getProperty("java.io.tmpdir")),
+    val tmpDir = new File(System.getProperty("java.io.tmpdir"))
+    val rocksDB = new RocksDbKeyValueStore(tmpDir,
       options,
       new MapConfig(),
       false,
@@ -94,7 +97,8 @@ class TestRocksDbKeyValueStore
     val numberOfOperationsAdded: Int = 3
     val options = new Options()
     val storeName: String = "someStore"
-    val rocksDB = new RocksDbKeyValueStore(new File(System.getProperty("java.io.tmpdir")),
+    val tmpDir = new File(System.getProperty("java.io.tmpdir"))
+    val rocksDB = new RocksDbKeyValueStore(tmpDir,
       options,
       new MapConfig(),
       false,
@@ -106,7 +110,6 @@ class TestRocksDbKeyValueStore
     }
 
     rocksDB.flush
-
 
     val numberKeysRead = rocksDB.getStatistic().numberKeysRead().getCount
     val numberBytesWritten = rocksDB.getStatistic().numberKeysWritten().getCount
