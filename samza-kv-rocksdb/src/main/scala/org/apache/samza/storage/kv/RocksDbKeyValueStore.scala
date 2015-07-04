@@ -130,7 +130,7 @@ object RocksDbKeyValueStore extends Logging {
       }
   }
 
-  def statistic(storeName: String, options: Options, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, metrics: KeyValueStoreMetrics)
+  def statistic(storeName: String, options: Options, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, metrics)
 }
 
 class RocksDbKeyValueStore(
@@ -242,17 +242,19 @@ class RocksDbKeyValueStore(
   }
 
   /**
-   * This method exposes RocksDb statistic to a metric, using [[RocksDbStatisticMetrics]] instance.
-   * Basically [[RocksDbStatisticMetrics]] wrap counters and gauges, where counters it's directly
-   * associated with [[TickerType]] and gauges with [[HistogramData]].
-   * To make use of the statistics the user should update it calling [[RocksDbKeyValueStore.flush]]
+   * This method exposes RocksDb statistic to a metric, using {@link RocksDbStatisticMetrics}
+   * instance.
+   * Basically {@link RocksDbStatisticMetrics} wrap counters and gauges, where counters it's
+   * directly
+   * associated with {@link TickerType} and gauges with {@link HistogramData}.
+   * To make use of the statistics the user should update it calling {@link RocksDbKeyValueStore#flush}
    * and then choose your statistic, example:
    *
    * rocksDb.flush
    * rocksDB.getStatistic().numberKeysRead().getCount
    * rocksDB.getStatistic().dbGetHistogram().getValue.getAverage
    *
-   * @return [[RocksDbStatisticMetrics]]
+   * @return RocksDbStatisticMetrics instance
    */
   def getStatistic() = statistic
 

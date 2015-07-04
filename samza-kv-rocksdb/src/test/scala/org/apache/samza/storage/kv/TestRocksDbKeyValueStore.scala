@@ -81,11 +81,11 @@ class TestRocksDbKeyValueStore
     // Update statisctics
     rocksDB.flush
 
-    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().numberKeysRead().getCount)
-    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().numberKeysWritten().getCount)
-    Assert.assertTrue(rocksDB.getStatistic().bytesWritten().getCount > 0)
-    Assert.assertTrue(rocksDB.getStatistic().bytesRead().getCount > 0)
-    Assert.assertTrue(rocksDB.getStatistic().dbGetHistogram().getValue.getAverage > 0)
+    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().counterNumberKeysRead.getCount)
+    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().counterNumberKeysWritten.getCount)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesWritten.getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesRead.getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage > 0)
     rocksDB.close()
   }
 
@@ -109,9 +109,9 @@ class TestRocksDbKeyValueStore
 
     rocksDB.flush
 
-    val numberKeysRead = rocksDB.getStatistic().numberKeysRead().getCount
-    val numberBytesWritten = rocksDB.getStatistic().numberKeysWritten().getCount
-    val dbGetAverage = rocksDB.getStatistic().dbGetHistogram().getValue.getAverage
+    val numberKeysRead = rocksDB.getStatistic().counterNumberKeysRead.getCount
+    val numberBytesWritten = rocksDB.getStatistic().counterNumberKeysWritten.getCount
+    val dbGetAverage = rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage
 
     Assert.assertEquals(numberOfOperations, numberKeysRead)
     Assert.assertEquals(numberOfOperations, numberBytesWritten)
@@ -126,11 +126,11 @@ class TestRocksDbKeyValueStore
 
     rocksDB.flush
 
-    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().numberKeysRead().getCount)
-    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().numberKeysWritten().getCount)
-    Assert.assertTrue(rocksDB.getStatistic().bytesWritten().getCount > numberBytesWritten)
-    Assert.assertTrue(rocksDB.getStatistic().bytesRead().getCount > numberKeysRead)
-    Assert.assertTrue(rocksDB.getStatistic().dbGetHistogram().getValue.getAverage > dbGetAverage)
+    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().counterNumberKeysRead.getCount)
+    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().counterNumberKeysWritten.getCount)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesWritten.getCount > numberBytesWritten)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesRead.getCount > numberKeysRead)
+    Assert.assertTrue(rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage > dbGetAverage)
 
     rocksDB.close()
   }
