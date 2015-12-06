@@ -30,6 +30,7 @@ import org.apache.samza.system.SystemStreamPartition
 import org.apache.samza.util.{NoOpMetricsRegistry, ExponentialSleepStrategy}
 import org.apache.samza.util.Util._
 import org.junit.{Assert, Test}
+import org.rocksdb.{WriteOptions, HistogramType, Options, TickerType}
 import org.rocksdb.{RocksDB, FlushOptions, RocksDBException, Options}
 
 class TestRocksDbKeyValueStore
@@ -86,5 +87,79 @@ class TestRocksDbKeyValueStore
     Assert.assertEquals(new String(rocksDBReadOnly.get(key), "UTF-8"), "val")
     rocksDB.close()
     rocksDBReadOnly.close()
+  }
+
+  @Test
+  def testStatistic() {
+    val numberOfOperations: Int = 1000
+    val options = new Options()
+    val storeName: String = "someStore"
+    val tmpDir = new File(System.getProperty("java.io.tmpdir"))
+    val rocksDB = new RocksDbKeyValueStore(tmpDir,
+      options,
+      new MapConfig(),
+      false,
+      storeName)
+
+    for (key <- 1 to numberOfOperations) {
+      rocksDB.put(("k" + key).getBytes("UTF-8"), "aeiou".getBytes("UTF-8"))
+      rocksDB.get(("k" + key).getBytes("UTF-8"))
+    }
+
+    // Update statisctics
+    rocksDB.flush
+
+    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().counterNumberKeysRead.getCount)
+    Assert.assertEquals(numberOfOperations, rocksDB.getStatistic().counterNumberKeysWritten.getCount)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesWritten.getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesRead.getCount > 0)
+    Assert.assertTrue(rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage > 0)
+    rocksDB.close()
+  }
+
+  @Test
+  def testFlushStatistic() {
+    val numberOfOperations: Int = 1000
+    val numberOfOperationsAdded: Int = numberOfOperations * 2
+    val options = new Options()
+    val storeName: String = "someStore"
+    val tmpDir = new File(System.getProperty("java.io.tmpdir"))
+    val rocksDB = new RocksDbKeyValueStore(tmpDir,
+      options,
+      new MapConfig(),
+      false,
+      storeName)
+
+    for (key <- 1 to numberOfOperations) {
+      rocksDB.put(("k" + key).getBytes("UTF-8"), "aeiou".getBytes("UTF-8"))
+      rocksDB.get(("k" + key).getBytes("UTF-8"))
+    }
+
+    rocksDB.flush
+
+    val numberKeysRead = rocksDB.getStatistic().counterNumberKeysRead.getCount
+    val numberBytesWritten = rocksDB.getStatistic().counterNumberKeysWritten.getCount
+    val dbGetAverage = rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage
+
+    Assert.assertEquals(numberOfOperations, numberKeysRead)
+    Assert.assertEquals(numberOfOperations, numberBytesWritten)
+    Assert.assertTrue(dbGetAverage > 0)
+
+
+
+    for (key <- 1 to numberOfOperationsAdded) {
+      rocksDB.put(("k" + key).getBytes("UTF-8"), "aeiou".getBytes("UTF-8"))
+      rocksDB.get(("k" + key).getBytes("UTF-8"))
+    }
+
+    rocksDB.flush
+
+    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().counterNumberKeysRead.getCount)
+    Assert.assertEquals(numberOfOperations + numberOfOperationsAdded, rocksDB.getStatistic().counterNumberKeysWritten.getCount)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesWritten.getCount > numberBytesWritten)
+    Assert.assertTrue(rocksDB.getStatistic().counterBytesRead.getCount > numberKeysRead)
+    Assert.assertTrue(rocksDB.getStatistic().gaugeDbGetHistogram.getValue.getAverage > dbGetAverage)
+
+    rocksDB.close()
   }
 }

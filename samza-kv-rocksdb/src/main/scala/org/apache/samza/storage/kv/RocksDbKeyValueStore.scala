@@ -86,6 +86,8 @@ object RocksDbKeyValueStore extends Logging {
         }
       }
   }
+
+  def statistic(storeName: String, options: Options, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, metrics)
 }
 
 class RocksDbKeyValueStore(
@@ -103,6 +105,7 @@ class RocksDbKeyValueStore(
   private lazy val db = RocksDbKeyValueStore.openDB(dir, options, storeConfig, isLoggedStore, storeName)
   private val lexicographic = new LexicographicComparator()
   private var deletesSinceLastCompaction = 0
+  private val statistic = RocksDbKeyValueStore.statistic(storeName, options, metrics)
 
   def get(key: Array[Byte]): Array[Byte] = {
     metrics.gets.inc
@@ -190,6 +193,7 @@ class RocksDbKeyValueStore(
   }
 
   def flush {
+    getStatistic.updateRocksDbStatistic()
     metrics.flushes.inc
     trace("Flushing.")
     db.flush(flushOptions)
@@ -251,6 +255,22 @@ class RocksDbKeyValueStore(
     }
   }
 
+  /**
+   * This method exposes RocksDb statistic to a metric, using {@link RocksDbStatisticMetrics}
+   * instance.
+   * Basically {@link RocksDbStatisticMetrics} wrap counters and gauges, where counters it's
+   * directly
+   * associated with {@link TickerType} and gauges with {@link HistogramData}.
+   * To make use of the statistics the user should update it calling {@link RocksDbKeyValueStore#flush}
+   * and then choose your statistic, example:
+   *
+   * rocksDb.flush
+   * rocksDB.getStatistic().numberKeysRead().getCount
+   * rocksDB.getStatistic().dbGetHistogram().getValue.getAverage
+   *
+   * @return RocksDbStatisticMetrics instance
+   */
+  def getStatistic() = statistic
   class RocksDbRangeIterator(iter: RocksIterator, from: Array[Byte], to: Array[Byte]) extends RocksDbIterator(iter) {
     // RocksDB's JNI interface does not expose getters/setters that allow the 
     // comparator to be pluggable, and the default is lexicographic, so it's
