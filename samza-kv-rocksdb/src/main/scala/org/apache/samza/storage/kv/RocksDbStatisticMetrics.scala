@@ -20,10 +20,11 @@
 package org.apache.samza.storage.kv
 
 import org.apache.samza.metrics.{Counter, MetricsHelper, MetricsRegistry, MetricsRegistryMap}
-import org.rocksdb.{HistogramData, HistogramType, Options, TickerType}
+import org.rocksdb._
 
 class RocksDbStatisticMetrics(val storeName: String = "unknown",
                        val options: Options,
+                       val writeOptions: WriteOptions,
                        val metrics: KeyValueStoreMetrics) {
 
   val statistic = options.statisticsPtr()

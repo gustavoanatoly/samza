@@ -87,7 +87,7 @@ object RocksDbKeyValueStore extends Logging {
       }
   }
 
-  def statistic(storeName: String, options: Options, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, metrics)
+  def statistic(storeName: String, options: Options, writeOptions: WriteOptions, metrics: KeyValueStoreMetrics) = new RocksDbStatisticMetrics(storeName, options, writeOptions, metrics)
 }
 
 class RocksDbKeyValueStore(
@@ -105,7 +105,7 @@ class RocksDbKeyValueStore(
   private lazy val db = RocksDbKeyValueStore.openDB(dir, options, storeConfig, isLoggedStore, storeName)
   private val lexicographic = new LexicographicComparator()
   private var deletesSinceLastCompaction = 0
-  private val statistic = RocksDbKeyValueStore.statistic(storeName, options, metrics)
+  private val statistic = RocksDbKeyValueStore.statistic(storeName, options, writeOptions, metrics)
 
   def get(key: Array[Byte]): Array[Byte] = {
     metrics.gets.inc
